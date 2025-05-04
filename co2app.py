@@ -7,7 +7,7 @@ Original file is located at
     https://colab.research.google.com/drive/1ajrjBQjWU4twoaleCgZQbjcJYKa7Ve2E
 """
 
-# app.py - Streamlit interface for CO₂ prediction (Advanced Version)
+# app.py - Streamlit interface for CO₂ prediction (Advanced Version with Button)
 
 import streamlit as st
 import joblib
@@ -35,31 +35,33 @@ end_hour = st.sidebar.slider("End Hour", start_hour + 1, 24, 12)
 prev_co2_1h = st.sidebar.number_input("CO₂ 1 hour before start (ppm)", min_value=300.0, max_value=2000.0, value=500.0)
 prev_co2_2h = st.sidebar.number_input("CO₂ 2 hours before start (ppm)", min_value=300.0, max_value=2000.0, value=480.0)
 
-# --- Generate Predictions for the Time Range ---
-hours = list(range(start_hour, end_hour))
-predictions = []
+# --- Prediction Trigger ---
+if st.sidebar.button("🔍 Predict CO₂"):
+    # --- Generate Predictions for the Time Range ---
+    hours = list(range(start_hour, end_hour))
+    predictions = []
 
-for i, hour in enumerate(hours):
-    delta_co2_1h = prev_co2_1h - prev_co2_2h
-    features = np.array([[hour, dayofweek, is_weekend, prev_co2_1h, prev_co2_2h, delta_co2_1h]])
-    predicted_co2 = model.predict(features)[0]
+    for i, hour in enumerate(hours):
+        delta_co2_1h = prev_co2_1h - prev_co2_2h
+        features = np.array([[hour, dayofweek, is_weekend, prev_co2_1h, prev_co2_2h, delta_co2_1h]])
+        predicted_co2 = model.predict(features)[0]
 
-    predictions.append({
-        "Hour": f"{hour}:00",
-        "Predicted CO₂ (ppm)": round(predicted_co2, 2)
-    })
+        predictions.append({
+            "Hour": f"{hour}:00",
+            "Predicted CO₂ (ppm)": round(predicted_co2, 2)
+        })
 
-    # For next iteration: shift previous values
-    prev_co2_2h = prev_co2_1h
-    prev_co2_1h = predicted_co2
+        # For next iteration: shift previous values
+        prev_co2_2h = prev_co2_1h
+        prev_co2_1h = predicted_co2
 
-# --- Display Results ---
-st.subheader(f"📈 Predicted CO₂ from {start_hour}:00 to {end_hour}:00 on {selected_date.strftime('%A, %b %d')}")
-pred_df = pd.DataFrame(predictions)
-st.dataframe(pred_df, use_container_width=True)
+    # --- Display Results ---
+    st.subheader(f"📈 Predicted CO₂ from {start_hour}:00 to {end_hour}:00 on {selected_date.strftime('%A, %b %d')}")
+    pred_df = pd.DataFrame(predictions)
+    st.dataframe(pred_df, use_container_width=True)
 
-# --- Optional Chart ---
-st.line_chart(pred_df.set_index("Hour")[["Predicted CO₂ (ppm)"]])
+    # --- Optional Chart ---
+    st.line_chart(pred_df.set_index("Hour")[["Predicted CO₂ (ppm)"]])
 
-st.markdown("---")
-st.caption("Model: XGBoost with engineered time features")
+    st.markdown("---")
+    st.caption("Model: XGBoost with engineered time features")
