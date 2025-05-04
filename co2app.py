@@ -7,41 +7,59 @@ Original file is located at
     https://colab.research.google.com/drive/1ajrjBQjWU4twoaleCgZQbjcJYKa7Ve2E
 """
 
-# app.py - Streamlit interface for CO₂ prediction
+# app.py - Streamlit interface for CO₂ prediction (Advanced Version)
 
 import streamlit as st
 import joblib
 import numpy as np
+import pandas as pd
+from datetime import datetime, timedelta
 
 # Load model
 model = joblib.load("xgboost_dreumes_model.pkl")
 
 st.set_page_config(page_title="CO₂ Predictor - Room 0.05 Dreumes")
-st.title("🧠 CO₂ Prediction App")
-st.markdown("This app predicts hourly CO₂ levels in the room `0.05 Dreumes` based on time and recent values.")
+st.title("🧠 CO₂ Prediction App – Advanced Range Mode")
+st.markdown("This app predicts **hourly CO₂ levels** in the room `0.05 Dreumes` based on time and recent values over a selected time range.")
 
-# Sidebar inputs
-st.sidebar.header("Input Parameters")
-hour = st.sidebar.slider("Hour of Day (0-23)", min_value=0, max_value=23, value=10)
-dayofweek = st.sidebar.selectbox("Day of the Week", [
-    (0, "Monday"), (1, "Tuesday"), (2, "Wednesday"),
-    (3, "Thursday"), (4, "Friday"), (5, "Saturday"), (6, "Sunday")
-], format_func=lambda x: x[1])[0]
+# --- Sidebar Inputs ---
+st.sidebar.header("📅 Select Forecast Parameters")
+
+selected_date = st.sidebar.date_input("Select Date", datetime.today())
+dayofweek = selected_date.weekday()
 is_weekend = int(dayofweek in [5, 6])
 
-prev_co2_1h = st.sidebar.number_input("CO₂ 1 hour ago (ppm)", min_value=300.0, max_value=2000.0, value=500.0)
-prev_co2_2h = st.sidebar.number_input("CO₂ 2 hours ago (ppm)", min_value=300.0, max_value=2000.0, value=480.0)
-delta_co2_1h = prev_co2_1h - prev_co2_2h
+start_hour = st.sidebar.slider("Start Hour", 0, 23, 9)
+end_hour = st.sidebar.slider("End Hour", start_hour + 1, 24, 12)
 
-# Prepare input for prediction
-input_features = np.array([[hour, dayofweek, is_weekend, prev_co2_1h, prev_co2_2h, delta_co2_1h]])
+prev_co2_1h = st.sidebar.number_input("CO₂ 1 hour before start (ppm)", min_value=300.0, max_value=2000.0, value=500.0)
+prev_co2_2h = st.sidebar.number_input("CO₂ 2 hours before start (ppm)", min_value=300.0, max_value=2000.0, value=480.0)
 
-# Predict
-predicted_co2 = model.predict(input_features)[0]
+# --- Generate Predictions for the Time Range ---
+hours = list(range(start_hour, end_hour))
+predictions = []
 
-# Output
-st.subheader("📈 Predicted CO₂ Level")
-st.metric("CO₂ (ppm)", f"{predicted_co2:.2f}")
+for i, hour in enumerate(hours):
+    delta_co2_1h = prev_co2_1h - prev_co2_2h
+    features = np.array([[hour, dayofweek, is_weekend, prev_co2_1h, prev_co2_2h, delta_co2_1h]])
+    predicted_co2 = model.predict(features)[0]
+
+    predictions.append({
+        "Hour": f"{hour}:00",
+        "Predicted CO₂ (ppm)": round(predicted_co2, 2)
+    })
+
+    # For next iteration: shift previous values
+    prev_co2_2h = prev_co2_1h
+    prev_co2_1h = predicted_co2
+
+# --- Display Results ---
+st.subheader(f"📈 Predicted CO₂ from {start_hour}:00 to {end_hour}:00 on {selected_date.strftime('%A, %b %d')}")
+pred_df = pd.DataFrame(predictions)
+st.dataframe(pred_df, use_container_width=True)
+
+# --- Optional Chart ---
+st.line_chart(pred_df.set_index("Hour")[["Predicted CO₂ (ppm)"]])
 
 st.markdown("---")
 st.caption("Model: XGBoost with engineered time features")
