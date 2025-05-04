@@ -19,7 +19,7 @@ from datetime import datetime, timedelta
 model = joblib.load("xgboost_dreumes_model.pkl")
 
 st.set_page_config(page_title="CO₂ Predictor - Room 0.05 Dreumes")
-st.title("🧠 CO₂ Prediction App – Advanced Range Mode")
+st.title("AirTeq CO₂ Prediction App")
 st.markdown("This app predicts **hourly CO₂ levels** in the room `0.05 Dreumes` based on time and recent values over a selected time range.")
 
 # --- Sidebar Inputs ---
