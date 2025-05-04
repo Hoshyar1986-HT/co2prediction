@@ -14,7 +14,7 @@ import joblib
 import numpy as np
 
 # Load model
-model = joblib.load("https://github.com/Hoshyar1986-HT/co2prediction/blob/main/xgboost_dreumes_model.pkl")
+model = joblib.load("xgboost_dreumes_model.pkl")
 
 st.set_page_config(page_title="CO₂ Predictor - Room 0.05 Dreumes")
 st.title("🧠 CO₂ Prediction App")
